@@ -1,0 +1,8 @@
+[package]
+name = "sspss"
+version = "0.1.0"
+authors = ["Arne Dußin <arne.dussin@live.de>"]
+edition = "2018"
+
+[dependencies]
+zeroize = "1.0"
