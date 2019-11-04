@@ -20,7 +20,9 @@ matrix:
   allow_failures:
     - rust: nightly
       # fast_finish: true
-cache: cargo
+cache:
+  - cargo
+  - kcov
 
 # Generate coverage and upload it
 after_success: |
