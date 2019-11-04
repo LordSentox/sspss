@@ -6,3 +6,7 @@ edition = "2018"
 
 [dependencies]
 zeroize = "1.0"
+
+[features]
+default = ["zeroize_derive"]
+zeroize_derive = ["zeroize/zeroize_derive"]

@@ -1,5 +1,7 @@
+use zeroize::Zeroize;
+
 #[derive(Zeroize)]
-#[drop(zeroize)]
+#[zeroize(drop)]
 pub enum CryptString {
     Encrypted(Vec<u8>),
     Decrypted(String),
@@ -7,8 +9,10 @@ pub enum CryptString {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
     #[test]
     fn rarr() {
-        let crypt_string = CryptString::Decrypted("arrrrgh");
+        let crypt_string = CryptString::Decrypted("arrrrgh".into());
     }
 }
