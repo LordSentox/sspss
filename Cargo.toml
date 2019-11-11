@@ -5,7 +5,8 @@ authors = ["Arne Dußin <arne.dussin@live.de>"]
 edition = "2018"
 
 [dependencies]
-zeroize = "1.0"
+rust-crypto = "^0.2"
+zeroize = "^1.0"
 
 [features]
 default = ["zeroize_derive"]
