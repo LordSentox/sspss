@@ -6,42 +6,30 @@ use zeroize::Zeroize;
 
 #[derive(Debug, Clone, Zeroize)]
 #[zeroize(drop)]
-pub enum CryptString {
-    Encrypted(Vec<u8>),
-    Decrypted(String)
+pub struct Encrypted(Vec<u8>);
+
+#[derive(Debug, Clone, Zeroize)]
+#[zeroize(drop)]
+pub struct SafeString(String);
+
+impl Encrypted {
+    pub fn to_decrypted(self, key: &[u8], iv: &[u8]) -> SafeString {
+        SafeString(
+            String::from_utf8(decrypt(&self.0, key, iv).expect("Unable to encrypt string"))
+                .expect("Encrypted string corrupted with non utf8 characters")
+        )
+    }
 }
 
-impl CryptString {
-    pub fn to_decrypted(self, key: &[u8], iv: &[u8]) -> Self {
-        match self {
-            Self::Encrypted(data) => Self::Decrypted(
-                String::from_utf8(decrypt(&data, key, iv).expect("Unable to encrypt string"))
-                    .expect("Encrypted string corrupted with non utf8 characters")
-            ),
-            decrypted => decrypted
-        }
-    }
-
-    pub fn to_encrypted(self, key: &[u8], iv: &[u8]) -> Self {
-        match self {
-            Self::Decrypted(string) => Self::Encrypted(
-                encrypt(&string.as_bytes(), key, iv).expect("Unable to encrypt string")
-            ),
-            encrypted => encrypted
-        }
+impl SafeString {
+    pub fn to_encrypted(self, key: &[u8], iv: &[u8]) -> Encrypted {
+        Encrypted(encrypt(&self.0.as_bytes(), key, iv).expect("Unable to encrypt string"))
     }
 
     pub fn hash(&self, salt: &[u8; 16]) -> [u8; 24] {
-        let string = match self {
-            Self::Decrypted(string) => string,
-            Self::Encrypted(_) => {
-                panic!("Tried to hash encrypted password, but it must be decrypted before")
-            }
-        };
-
         let cost = 12;
         let mut output = [0; 24];
-        bcrypt(cost, salt, &string.as_bytes(), &mut output);
+        bcrypt(cost, salt, &self.0.as_bytes(), &mut output);
 
         output
     }
@@ -108,12 +96,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn instantiation() { let _crypt_string = CryptString::Decrypted("arrrrgh".into()); }
+    fn instantiation() { let _crypt_string = SafeString("arrrrgh".into()); }
 
     #[test]
     fn encrypt_decrypt() {
         let raw = String::from("Why, how are you, little fellar?");
-        let data = CryptString::Decrypted(raw.clone());
+        let data = SafeString(raw.clone());
         let key = String::from("Waröm, 何をするつもり？");
         let key = key.as_bytes();
         let iv: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
@@ -121,15 +109,12 @@ mod test {
         let encrypted = data.to_encrypted(key, &iv);
         let decrypted = encrypted.to_decrypted(key, &iv);
 
-        match decrypted {
-            CryptString::Decrypted(dec) => assert_eq!(raw, dec),
-            enc => panic!("Unable to decrypt string {:?}", enc)
-        }
+        assert_eq!(raw, decrypted.0);
     }
 
     #[test]
     fn hash_bcrypt() {
-        let password = CryptString::Decrypted("Hello, there".into());
+        let password = SafeString("Hello, there".into());
         let salt: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
         let expected_hash = [
